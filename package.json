@@ -1,0 +1,21 @@
+{
+  "name": "js-homework",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+		"start": "node index"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Veronikanos/node-js-homework.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Veronikanos/node-js-homework/issues"
+  },
+  "homepage": "https://github.com/Veronikanos/node-js-homework#readme"
+}
