@@ -1,82 +1,12 @@
-// const http = require('http');
-// const fs = require('fs');
-// const url = require('url');
-// const readline = require('readline');
-
-// const rl = readline.createInterface({
-//   input: process.stdin,
-//   output: process.stdout
-// });
-// let htmlPath;
-// let dataPath;
-
-// rl.question('Enter path to HTML template: ', (answer) => {
-//   htmlPath = answer;
-//   rl.question('Enter path to data file: ', (answer) => {
-//     dataPath = answer;
-
-//     try {
-//       if (!fs.existsSync(htmlPath)) {
-//         throw new Error(`HTML template file not found at path: ${htmlPath}`);
-//       }
-
-//       if (!fs.existsSync(dataPath)) {
-//         throw new Error(`Data file not found at path: ${dataPath}`);
-//       }
-
-//       const htmlFileExtension = path.extname(htmlPath);
-//       const dataFileExtension = path.extname(dataPath);
-
-//       if (htmlFileExtension !== '.html') {
-//         throw new Error(`Invalid file type for HTML template. Expected .html, but got ${htmlFileExtension}`);
-//       }
-
-//       if (dataFileExtension !== '.json') {
-//         throw new Error(`Invalid file type for data file. Expected .json, but got ${dataFileExtension}`);
-//       }
-
-//       const html = fs.readFileSync(htmlPath, 'utf-8');
-//       const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
-			
-
-//       const server = http.createServer((req, res) => {
-//         const parsedUrl = url.parse(req.url, true);
-
-//         if (parsedUrl.pathname === '/') {
-//           res.setHeader('Content-Type', 'text/html');
-
-					
-//           let itemsHtml = '';
-//           for (let i = 0; i < data.length; i++) {
-//             itemsHtml += `<li>${data[i].name} (${data[i].email}) - ${data[i].phone}</li>`;
-//           }
-//           const renderedHtml = html.replace('{{data}}', itemsHtml);
-//           res.write(renderedHtml);
-//           res.end();
-//         }
-//         else {
-//           res.writeHead(404, { 'Content-Type': 'text/plain' });
-//           res.end('Not Found');
-//         }
-//       });
-
-//       server.listen(3000, () => {
-//         console.log(`Server running on http://localhost:3000`);
-//       });
-//     } catch (error) {
-//       console.error(error.message);
-//     }
-//   });
-// });
-
 const http = require('http');
 const fs = require('fs');
 const url = require('url');
 const readline = require('readline');
+const path = require('path');
 
 const rl = readline.createInterface({
   input: process.stdin,
-  output: process.stdout
+  output: process.stdout,
 });
 
 let htmlPath;
@@ -89,16 +19,11 @@ rl.question('Enter path to HTML template: ', (answer) => {
 
     let html;
     try {
-      html = fs.readFileSync(htmlPath, 'utf-8');
+      checkExtension(htmlPath);
 
-			// Checking if html template includes {{data}} to insert data from json file into it.
-			const placeholderRegex = /{{\s*(\w+)\s*}}/g;
-      const matches = html.match(placeholderRegex);
-      if (!matches || !matches.includes('{{data}}')) {
-				console.error('Template is missing {{data}} placeholder');
-				rl.close();
-				return;
-      }
+      html = fs.readFileSync(htmlPath, 'utf-8');
+      // Checking if html template includes {{data}} to insert data from json file into it.
+      checkIfIncludesPlaceholder(html);
     } catch (error) {
       console.error(`Error reading HTML file: ${error.message}`);
       rl.close();
@@ -115,20 +40,17 @@ rl.question('Enter path to HTML template: ', (answer) => {
     }
 
     const server = http.createServer((req, res) => {
-      const parsedUrl = url.parse(req.url, true);
+    const parsedUrl = url.parse(req.url, true);
 
       if (parsedUrl.pathname === '/') {
         res.setHeader('Content-Type', 'text/html');
-        let itemsHtml = '';
-        for (let i = 0; i < data.length; i++) {
-          itemsHtml += `<li>${data[i].name} (${data[i].email}) - ${data[i].phone}</li>`;
-        }
-        const renderedHtml = html.replace('{{data}}', itemsHtml);
+
+				const markup = insertDataIntoTemplate(data);
+        const renderedHtml = html.replace('{{data}}', markup);
         res.write(renderedHtml);
         res.end();
-      }
-      else {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
+      } else {
+        res.writeHead(404, {'Content-Type': 'text/plain'});
         res.end();
       }
     });
@@ -138,3 +60,35 @@ rl.question('Enter path to HTML template: ', (answer) => {
     });
   });
 });
+
+function checkExtension(htmlPath) {
+  const fileExtension = path.extname(htmlPath);
+  if (fileExtension !== '.html') {
+    throw new Error(
+      'Invalid file type. The HTML template file should have .html extension.'
+    );
+  }
+}
+
+function insertDataIntoTemplate(data){
+	let itemsHtml = '';
+	const keys = Object.keys(data[0]);
+	for (let i = 0; i < data.length; i++) {
+		let innerData = '';
+		for (let j = 0; j < keys.length; j++) {
+			if (keys[j] === 'id') continue;
+			innerData += `<p><b>${keys[j]}:</b> ${
+				data[i][keys[j]]
+			}</p>`;
+		}
+		itemsHtml += `<li>${innerData}</li>`;
+	}
+	return itemsHtml;
+}
+
+function checkIfIncludesPlaceholder(html) {
+	const placeholder = '{{data}}';
+  if (!html.includes(placeholder)) {
+    throw new Error(`Template is missing ${placeholder} placeholder`);
+  }
+}
